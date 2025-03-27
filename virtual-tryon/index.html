@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <link rel="icon" href="Logo.png">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .auth-container {
+            text-align: center;
+            padding: 40px;
+            border: 2px solid #4dd0e1;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background-color: #212121;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+            color: #bbdefb;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        input {
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #4dd0e1;
+            border-radius: 8px;
+            background-color: #37474f;
+            color: #cfd8dc;
+            width: 250px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #00bcd4;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: #009688;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: #00796b;
+        }
+
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .background span {
+            position: absolute;
+            bottom: -50px;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s linear infinite;
+        }
+
+        .background span:nth-child(odd) {
+            background-color: rgba(0, 150, 136, 0.3);
+            width: 15px;
+            height: 15px;
+            animation-duration: 12s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-120vh) scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+    </div>
+    <div class="auth-container">
+        <h2>Enter Password to Access</h2>
+        <input type="password" id="password" placeholder="Enter Password">
+        <button onclick="checkPassword()">Submit</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            createBubbles();
+        });
+
+        function createBubbles() {
+            const background = document.querySelector(".background");
+            for (let i = 0; i < 40; i++) {
+                const bubble = document.createElement("span");
+                const size = Math.random() * 12 + 8;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 12 + 8}s`;
+                background.appendChild(bubble);
+            }
+        }
+
+        function checkPassword() {
+            const correctPassword = "admin";
+            const enteredPassword = document.getElementById("password").value;
+            if (enteredPassword === correctPassword) {
+                window.location.href = "index2.html";
+            } else {
+                alert("Incorrect password. Try again.");
+            }
+        }
+    </script>
+</body>
+</html>
