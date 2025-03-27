@@ -47,8 +47,6 @@ Virtual Try-On 3D is an augmented reality (AR) application that allows users to 
 ## Future Enhancements
 - Add support for real-time physics-based cloth simulation
 - Improve UI with more customization options
-- Extend compatibility to mobile devices
-- Implement additional clothing categories (e.g., jackets, dresses)
 - Enhance authentication system for better security
 
 ## License
