@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Try-On 3D</title>
+    <link rel="icon" href="Logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.min.js"></script>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        #video-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid cyan;
+        }
+        video {
+            display: block;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+.background span {
+    position: absolute;
+    bottom: -50px;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(0, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: float 10s linear infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100vh) scale(1.5);
+        opacity: 0;
+    }
+}
+
+        .controls {
+            margin-top: 10px;
+        }
+        button {
+            background-color: teal;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background"></div>
+
+    <h1>Virtual Try-On 3D</h1>
+
+    <div class="controls">
+        <label for="front-tshirt">Upload Front View:</label>
+        <input type="file" id="front-tshirt" accept="image/*">
+        <br>
+        <br>
+        
+        <label for="back-tshirt">Upload Back View:</label>
+        <input type="file" id="back-tshirt" accept="image/*">
+        <br>
+        <br>
+        <label for="front-pant">Upload Front Pant View:</label>
+        <input type="file" id="front-pant" accept="image/*">
+        <br>
+        <br>
+        <label for="back-pant">Upload Back Pant View:</label>
+        <input type="file" id="back-pant" accept="image/*">
+        <br>
+        <br>
+        
+        <button id="try-dress">Try Dress</button>
+        <button id="take-photo">Take Photo</button>
+        <button id="switch-view">Switch View</button>
+        <button id="switch-camera">Switch Camera</button>
+        <br>
+    </div>
+    
+    <div id="video-container">
+        <video id="video" autoplay></video>
+        <canvas id="overlay"></canvas>
+    </div>
+
+    <script>
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("overlay");
+        let ctx = canvas.getContext("2d");
+        let detector;
+        let frontImage = new Image();
+        let backImage = new Image();
+        let frontPantImage = new Image();
+        let backPantImage = new Image();
+        let isTracking = false;
+        let isFrontView = false; // 🔄 Swapped: Start with back view
+        let scaleFactor = 1.0;
+        let currentCamera = 'user'; // Default to front camera
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera } });
+            video.srcObject = stream;
+            return new Promise((resolve) => (video.onloadedmetadata = resolve));
+        }
+
+        async function loadPoseModel() {
+            detector = await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose, {
+                runtime: 'mediapipe',
+                solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose'
+            });
+        }
+
+        document.getElementById("front-tshirt").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => backImage = img; // 🔄 Swapped: Front file is now back image
+            }
+        });
+
+        document.getElementById("back-tshirt").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => frontImage = img; // 🔄 Swapped: Back file is now front image
+            }
+        });
+
+        document.getElementById("front-pant").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => frontPantImage = img;
+            }
+        });
+
+        document.getElementById("back-pant").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => backPantImage = img;
+            }
+        });
+
+        document.getElementById("try-dress").addEventListener("click", function() {
+            if (frontImage) {
+                isTracking = true;
+                startPoseDetection();
+            } else {
+                alert("Please upload a front t-shirt image.");
+            }
+        });
+
+        document.getElementById("switch-view").addEventListener("click", function() {
+            isFrontView = !isFrontView;
+        });
+
+        async function startPoseDetection() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            async function detectPose() {
+                if (!isTracking) return;
+
+                const poses = await detector.estimatePoses(video);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (poses.length > 0) {
+                    const keypoints = poses[0].keypoints;
+                    const leftShoulder = keypoints.find(p => p.name === "left_shoulder");
+                    const rightShoulder = keypoints.find(p => p.name === "right_shoulder");
+                    const leftHip = keypoints.find(p => p.name === "left_hip");
+                    const rightHip = keypoints.find(p => p.name === "right_hip");
+                    const leftKnee = keypoints.find(p => p.name === "left_knee");
+                    const rightKnee = keypoints.find(p => p.name === "right_knee");
+
+                    if (leftShoulder && rightShoulder && leftHip && rightHip) {
+                        let width = Math.abs(rightShoulder.x - leftShoulder.x) * 2 * scaleFactor;
+                        let height = Math.abs(leftHip.y - leftShoulder.y) * 1.8 * scaleFactor;
+                        let x = (leftShoulder.x + rightShoulder.x) / 2 - width / 2;
+                        let y = leftShoulder.y - height * 0.2;
+                        let shoulderAngle = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
+
+                        let selectedImage = isFrontView ? frontImage : backImage;
+
+                        ctx.save();
+                        ctx.translate(x + width / 2, y + height / 2);
+                        ctx.rotate(shoulderAngle);
+
+                        // ✅ **Fix for Correct Image Orientation**
+                        if (!isFrontView) {
+                            ctx.scale(1, -1);  // Only flip back image
+                        }
+
+                        ctx.drawImage(selectedImage, -width / 2, -height / 2, width, height);
+                        ctx.restore();
+                    }
+
+                     if (leftHip && rightHip && leftKnee && rightKnee) {
+                        let pantWidth = Math.abs(rightHip.x - leftHip.x) * 2 * scaleFactor;
+                        let pantHeight = Math.abs(leftKnee.y - leftHip.y) * 1.8 * scaleFactor;
+                        let pantX = (leftHip.x + rightHip.x) / 2 - pantWidth / 2;
+                        let pantY = leftHip.y - pantHeight * 0.2;
+                        let hipAngle = Math.atan2(rightHip.y - leftHip.y, rightHip.x - leftHip.x);
+
+                        let selectedPantImage = isFrontView ? frontPantImage : backPantImage;
+
+                        if (selectedPantImage && selectedPantImage.complete) { // Only draw if image is loaded
+                            ctx.save();
+                            ctx.translate(pantX + pantWidth / 2, pantY + pantHeight / 2);
+                            ctx.rotate(hipAngle);
+
+                            if (!isFrontView) {
+                                ctx.scale(1, -1); // Flip back view pant
+                            }
+
+                            ctx.drawImage(selectedPantImage, -pantWidth / 2, -pantHeight / 2, pantWidth, pantHeight);
+                            ctx.restore();
+                        }
+                    }
+                }
+                requestAnimationFrame(detectPose);
+            }
+            detectPose();
+        }
+
+        // **Mouse Scroll for Scaling**
+        canvas.addEventListener("wheel", function(event) {
+            event.preventDefault();
+            if (event.deltaY < 0) {
+                scaleFactor += 0.05; // Zoom In
+            } else {
+                scaleFactor = Math.max(0.5, scaleFactor - 0.05); // Zoom Out, Min: 0.5x
+            }
+        });
+
+        async function init() {
+            await setupCamera();
+            await loadPoseModel();
+        }
+
+        init();
+
+        document.getElementById("take-photo").addEventListener("click", function() {
+            let captureCanvas = document.createElement("canvas");
+            let captureCtx = captureCanvas.getContext("2d");
+
+            captureCanvas.width = canvas.width;
+            captureCanvas.height = canvas.height;
+
+            // Draw video frame
+            captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+            
+            // Draw the overlaid content from the try-on canvas
+            captureCtx.drawImage(canvas, 0, 0);
+
+            // Convert to image and download
+            let link = document.createElement("a");
+            link.href = captureCanvas.toDataURL("image/png");
+            link.download = "virtual-tryon.png";
+            link.click();
+        });
+
+        document.getElementById("switch-camera").addEventListener("click", async function() {
+            currentCamera = currentCamera === 'user' ? 'environment' : 'user'; // Toggle camera
+            try {
+                const stream = video.srcObject;
+                if (stream) {
+                    const tracks = stream.getTracks();
+                    tracks.forEach(track => track.stop()); // Stop the current stream
+                }
+                await setupCamera();
+            } catch (error) {
+                console.error("Error switching camera:", error);
+                alert("Failed to switch camera.");
+            }
+        });
+
+
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            for (let i = 0; i < 30; i++) {
+                let bubble = document.createElement("span");
+                let size = Math.random() * 10 + 10;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 10 + 5}s`;
+                document.querySelector(".background").appendChild(bubble);
+            }
+        });
+    </script>
+
+</body>
+</html>

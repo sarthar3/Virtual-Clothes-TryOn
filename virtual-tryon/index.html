@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <link rel="icon" href="Logo.png">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #121212; /* Darker background */
+            color: #e0e0e0; /* Lighter text color */
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars */
+        }
+
+        .auth-container {
+            text-align: center;
+            padding: 40px; /* Increased padding */
+            border: 2px solid #4dd0e1; /* Cyan border */
+            border-radius: 15px; /* More rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Shadow for depth */
+            background-color: #212121; /* Slightly lighter container background */
+        }
+
+        h2 {
+            margin-bottom: 25px;
+            color: #bbdefb; /* Softer header color */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Text shadow for emphasis */
+        }
+
+        input {
+            padding: 12px; /* Increased padding */
+            margin: 15px 0; /* Increased vertical margin, removed horizontal */
+            border: 1px solid #4dd0e1; /* Cyan border */
+            border-radius: 8px; /* More rounded input corners */
+            background-color: #37474f; /* Darker input background */
+            color: #cfd8dc; /* Lighter input text color */
+            width: 250px; /* Fixed width for consistency */
+            box-sizing: border-box; /* Include padding/border in width */
+            transition: border-color 0.3s ease; /* Smooth border transition */
+        }
+
+        input:focus {
+            border-color: #00bcd4; /* Brighter cyan on focus */
+            outline: none; /* Remove default focus outline */
+        }
+
+        button {
+            padding: 12px 25px; /* Adjusted padding */
+            background-color: #009688; /* Teal background */
+            color: #fff; /* White text */
+            border: none;
+            cursor: pointer;
+            border-radius: 8px; /* Rounded button corners */
+            transition: background-color 0.3s ease; /* Smooth background transition */
+            font-size: 16px; /* Slightly larger font size */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Button shadow */
+        }
+
+        button:hover {
+            background-color: #00796b; /* Darker teal on hover */
+        }
+
+        /* Animated Background Bubbles */
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .background span {
+            position: absolute;
+            bottom: -50px;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s linear infinite; /* Slower animation */
+        }
+
+        /* Randomize bubble properties */
+        .background span:nth-child(odd) {
+            background-color: rgba(0, 150, 136, 0.3); /* Slightly different color */
+            width: 15px;
+            height: 15px;
+            animation-duration: 12s; /* Vary animation speed */
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-120vh) scale(1.5); /* Higher range */
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+    </div>
+    <div class="auth-container">
+        <h2>Enter Password to Access</h2>
+        <input type="password" id="password" placeholder="Enter Password">
+        <button onclick="checkPassword()">Submit</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Create bubbles on load
+            createBubbles();
+        });
+
+        function createBubbles() {
+            const background = document.querySelector(".background");
+            for (let i = 0; i < 40; i++) { // Increased number of bubbles
+                const bubble = document.createElement("span");
+                const size = Math.random() * 12 + 8; // Vary size more
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 12 + 8}s`; // Vary animation speed
+                background.appendChild(bubble);
+            }
+        }
+
+        function checkPassword() {
+            const correctPassword = "admin"; // Change this to your actual password
+            const enteredPassword = document.getElementById("password").value;
+            if (enteredPassword === correctPassword) {
+                window.location.href = "index2.html"; // Redirect to your home page
+            } else {
+                alert("Incorrect password. Try again.");
+            }
+        }
+    </script>
+</body>
+</html>
